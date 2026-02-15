@@ -36,11 +36,10 @@ app.get('/api/health', (req, res) => {
 app.get('/api/models', async (req, res) => {
     try {
         if (!process.env.GEMINI_API_KEY) throw new Error("API Key missing");
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
-        const data = await response.json();
-        res.json(data);
+        const list = await genAI.listModels();
+        res.json(list);
     } catch (error) {
+        console.error("List Models Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
