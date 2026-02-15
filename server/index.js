@@ -35,9 +35,13 @@ app.get('/api/health', (req, res) => {
 // List available models for this key
 app.get('/api/models', async (req, res) => {
     try {
-        if (!process.env.GEMINI_API_KEY) throw new Error("API Key missing");
-        const list = await genAI.listModels();
-        res.json(list);
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error("API Key missing");
+
+        // Use native fetch (available in Node 18+)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const data = await response.json();
+        res.json(data);
     } catch (error) {
         console.error("List Models Error:", error);
         res.status(500).json({ error: error.message });
@@ -52,40 +56,49 @@ function fileToGenerativePart(base64Data, mimeType) {
     };
 }
 
+const MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash", "gemini-pro"];
+
 app.post('/api/chat', async (req, res) => {
-    try {
-        const { message, history } = req.body;
-        console.log("Chat Request received. Message:", message);
+    let lastError = null;
+    const { message, history } = req.body;
 
-        // Use gemini-1.5-flash as it is the most stable and widely available
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const systemPrompt = "You are a direct and concise AI Health Assistant. Rules: 1. Answer immediately. 2. Be concise. 3. Use bullet points. 4. Add '(Note: I am an AI, not a doctor)' at end.";
-
-        const formattedHistory = (history || []).map(msg => ({
-            role: msg.role === 'bot' || msg.role === 'model' ? 'model' : 'user',
-            parts: [{ text: msg.text || "" }]
-        }));
-
-        const chat = model.startChat({
-            history: [
-                { role: "user", parts: [{ text: "System Instruction: " + systemPrompt }] },
-                { role: "model", parts: [{ text: "Understood." }] },
-                ...formattedHistory
-            ],
-        });
-
-        const result = await chat.sendMessage(message);
-        const response = await result.response;
-        res.json({ text: response.text() });
-    } catch (error) {
-        console.error("Chat API Error Detailed:", error);
-        res.status(500).json({
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-            type: "ChatError"
-        });
+    if (!message) {
+        return res.status(400).json({ error: "Message is required" });
     }
+
+    for (const modelName of MODELS_TO_TRY) {
+        try {
+            console.log(`Attempting Chat with model: ${modelName}`);
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const systemPrompt = "You are a direct and concise AI Health Assistant. Rules: 1. Answer immediately. 2. Be concise. 3. Use bullet points. 4. Add '(Note: I am an AI, not a doctor)' at end.";
+
+            const formattedHistory = (history || []).map(msg => ({
+                role: msg.role === 'bot' || msg.role === 'model' ? 'model' : 'user',
+                parts: [{ text: msg.text || "" }]
+            }));
+
+            const chat = model.startChat({
+                history: [
+                    { role: "user", parts: [{ text: "System Instruction: " + systemPrompt }] },
+                    { role: "model", parts: [{ text: "Understood." }] },
+                    ...formattedHistory
+                ],
+            });
+
+            const result = await chat.sendMessage(message);
+            const response = await result.response;
+            return res.json({ text: response.text(), usedModel: modelName });
+        } catch (error) {
+            console.error(`Model ${modelName} failed:`, error.message);
+            lastError = error;
+            // Continue to next model
+        }
+    }
+
+    res.status(500).json({
+        error: lastError?.message || "All models failed",
+        type: "ChatError"
+    });
 });
 
 // 2. Analysis Endpoint
