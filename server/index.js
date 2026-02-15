@@ -145,7 +145,8 @@ app.post('/api/diet', async (req, res) => {
 app.post('/api/prevention', async (req, res) => {
     try {
         const { searchTerm } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        console.log("Processing prevention request...");
 
         const prompt = `Analyze "${searchTerm}" and provide exactly 3 cards in this JSON format:
             [
