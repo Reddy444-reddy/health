@@ -31,6 +31,19 @@ app.get('/api/health', (req, res) => {
         nodeVersion: process.version
     });
 });
+
+// List available models for this key
+app.get('/api/models', async (req, res) => {
+    try {
+        if (!process.env.GEMINI_API_KEY) throw new Error("API Key missing");
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 function fileToGenerativePart(base64Data, mimeType) {
     return {
         inlineData: {

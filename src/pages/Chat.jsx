@@ -90,8 +90,15 @@ const Chat = () => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to get response from AI");
+                let errorMsg = "Failed to get response from AI";
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    const text = await response.text();
+                    errorMsg = text || errorMsg;
+                }
+                throw new Error(errorMsg);
             }
 
             const data = await response.json();
