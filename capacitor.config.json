@@ -1,0 +1,19 @@
+{
+    "appId": "com.healthai.app",
+    "appName": "HealthAI",
+    "webDir": "build",
+    "bundledWebRuntime": false,
+    "plugins": {
+        "SplashScreen": {
+            "launchShowDuration": 2000,
+            "backgroundColor": "#0F172A",
+            "androidScaleType": "CENTER_CROP",
+            "showSpinner": true,
+            "spinnerColor": "#06b6d4"
+        },
+        "StatusBar": {
+            "style": "DARK",
+            "backgroundColor": "#0F172A"
+        }
+    }
+}
