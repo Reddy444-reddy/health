@@ -74,6 +74,7 @@ const Chat = () => {
 
             // 2. Generate AI Response
             const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+            console.log("Calling Backend API:", `${API_URL}/api/chat`);
             const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: {
