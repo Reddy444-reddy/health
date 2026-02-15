@@ -43,7 +43,7 @@ function fileToGenerativePart(base64Data, mimeType) {
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, history } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         console.log("Processing chat request...");
 
         const systemPrompt = "You are a direct and concise AI Health Assistant. Rules: 1. Answer immediately. 2. Be concise. 3. Use bullet points. 4. Add '(Note: I am an AI, not a doctor)' at end.";
@@ -73,7 +73,7 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/analyze', async (req, res) => {
     try {
         const { fileBase64, mimeType } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         console.log("Processing chat request...");
 
         const base64Data = fileBase64.split(',')[1] || fileBase64;
@@ -119,7 +119,7 @@ app.post('/api/analyze', async (req, res) => {
 app.post('/api/diet', async (req, res) => {
     try {
         const { score, conditions, restrictions } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         console.log("Processing chat request...");
 
         const prompt = `Create a personalized diet plan for a person with:
