@@ -88,7 +88,10 @@ const Chat = () => {
                 }),
             });
 
-            if (!response.ok) throw new Error("Failed to get response from AI");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to get response from AI");
+            }
 
             const data = await response.json();
             const responseText = data.text;
@@ -108,11 +111,18 @@ const Chat = () => {
 
         } catch (error) {
             console.error("Chat Error:", error);
-            await addDoc(collection(db, 'users', currentUser.uid, 'chats'), {
-                text: "I'm having trouble connecting. Please check your API key or connection.",
+            const errorMessage = {
+                id: Date.now() + 1,
+                text: `Error: ${error.message}. Please check Render logs or API key.`,
                 role: 'bot',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            await addDoc(collection(db, 'users', currentUser.uid, 'chats'), {
+                text: errorMessage.text,
+                role: errorMessage.role,
                 createdAt: serverTimestamp()
             });
+            setIsTyping(false);
         } finally {
             setIsTyping(false);
         }

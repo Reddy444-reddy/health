@@ -19,7 +19,17 @@ app.get('/', (req, res) => {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Helper for file parts
+// Health check with diagnostics
+app.get('/api/health', (req, res) => {
+    const key = process.env.GEMINI_API_KEY;
+    res.json({
+        status: 'ok',
+        port: port,
+        apiKeyPresent: !!key,
+        apiKeyPrefix: key ? key.substring(0, 7) + '...' : 'missing',
+        nodeVersion: process.version
+    });
+});
 function fileToGenerativePart(base64Data, mimeType) {
     return {
         inlineData: {
