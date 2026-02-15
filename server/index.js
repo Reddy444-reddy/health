@@ -40,33 +40,39 @@ function fileToGenerativePart(base64Data, mimeType) {
     };
 }
 
-// 1. Chat Endpoint
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, history } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        console.log("Processing chat request...");
+        console.log("Chat Request received. Message:", message);
+
+        // Use gemini-1.5-flash as it is the most stable and widely available
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const systemPrompt = "You are a direct and concise AI Health Assistant. Rules: 1. Answer immediately. 2. Be concise. 3. Use bullet points. 4. Add '(Note: I am an AI, not a doctor)' at end.";
 
-        const formattedHistory = history.map(msg => ({
-            role: msg.role === 'bot' ? 'model' : 'user',
-            parts: [{ text: msg.text }]
+        const formattedHistory = (history || []).map(msg => ({
+            role: msg.role === 'bot' || msg.role === 'model' ? 'model' : 'user',
+            parts: [{ text: msg.text || "" }]
         }));
 
         const chat = model.startChat({
             history: [
-                { role: "user", parts: [{ text: "System: " + systemPrompt }] },
+                { role: "user", parts: [{ text: "System Instruction: " + systemPrompt }] },
                 { role: "model", parts: [{ text: "Understood." }] },
                 ...formattedHistory
             ],
         });
 
         const result = await chat.sendMessage(message);
-        res.json({ text: result.response.text() });
+        const response = await result.response;
+        res.json({ text: response.text() });
     } catch (error) {
-        console.error("Chat Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Chat API Error Detailed:", error);
+        res.status(500).json({
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            type: "ChatError"
+        });
     }
 });
 
@@ -74,8 +80,9 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/analyze', async (req, res) => {
     try {
         const { fileBase64, mimeType } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        console.log("Processing chat request...");
+        console.log("Analysis Request received. MIME:", mimeType);
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const base64Data = fileBase64.split(',')[1] || fileBase64;
         const filePart = fileToGenerativePart(base64Data, mimeType);
@@ -107,12 +114,13 @@ app.post('/api/analyze', async (req, res) => {
             }`;
 
         const result = await model.generateContent([prompt, filePart]);
-        const responseText = result.response.text();
+        const response = await result.response;
+        const responseText = response.text();
         const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
         res.json(JSON.parse(cleanJson));
     } catch (error) {
-        console.error("Analysis Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Analysis API Error Detailed:", error);
+        res.status(500).json({ error: error.message, type: "AnalysisError" });
     }
 });
 
@@ -120,13 +128,14 @@ app.post('/api/analyze', async (req, res) => {
 app.post('/api/diet', async (req, res) => {
     try {
         const { score, conditions, restrictions } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        console.log("Processing chat request...");
+        console.log("Diet Request received.");
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `Create a personalized diet plan for a person with:
             - Health Score: ${score}
-            - Conditions: ${conditions.join(', ')}
-            - Dietary needs: ${restrictions.join(', ')}
+            - Conditions: ${(conditions || []).join(', ')}
+            - Dietary needs: ${(restrictions || []).join(', ')}
             
             Provide a JSON response (NO markdown) with:
             {
@@ -143,12 +152,13 @@ app.post('/api/diet', async (req, res) => {
             }`;
 
         const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const response = await result.response;
+        const responseText = response.text();
         const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
         res.json(JSON.parse(cleanJson));
     } catch (error) {
-        console.error("Diet Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Diet API Error Detailed:", error);
+        res.status(500).json({ error: error.message, type: "DietError" });
     }
 });
 
@@ -156,8 +166,9 @@ app.post('/api/diet', async (req, res) => {
 app.post('/api/prevention', async (req, res) => {
     try {
         const { searchTerm } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        console.log("Processing prevention request...");
+        console.log("Prevention Request received for:", searchTerm);
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `Analyze "${searchTerm}" and provide exactly 3 cards in this JSON format:
             [
@@ -183,12 +194,13 @@ app.post('/api/prevention', async (req, res) => {
             Do NOT adhere to markdown formatting, just raw JSON.`;
 
         const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const response = await result.response;
+        const responseText = response.text();
         const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
         res.json(JSON.parse(cleanJson));
     } catch (error) {
-        console.error("Prevention Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Prevention API Error Detailed:", error);
+        res.status(500).json({ error: error.message, type: "PreventionError" });
     }
 });
 
